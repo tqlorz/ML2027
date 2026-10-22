@@ -1,4 +1,4 @@
-""" Resnet_IR_SE in ArcFace """
+"""Resnet_IR_SE in ArcFace"""
 
 import torch
 import torch.nn as nn
@@ -51,7 +51,7 @@ class IRSE(nn.Module):
             self.shortcut = nn.MaxPool2d(kernel_size=1, stride=stride)
         else:
             self.shortcut = nn.Sequential(
-                nn.Conv2d(channels, depth, (1, 1), stride, bias=False), 
+                nn.Conv2d(channels, depth, (1, 1), stride, bias=False),
                 nn.BatchNorm2d(depth),
             )
         self.residual = nn.Sequential(
@@ -65,6 +65,7 @@ class IRSE(nn.Module):
 
     def forward(self, x):
         return self.shortcut(x) + self.residual(x)
+
 
 class ResIRSE(nn.Module):
     """Resnet50-IRSE backbone"""
@@ -86,20 +87,38 @@ class ResIRSE(nn.Module):
 
         # ["channels", "depth", "stride"],
         self.res50_arch = [
-            [64, 64, 2], [64, 64, 1], [64, 64, 1],
-            [64, 128, 2], [128, 128, 1], [128, 128, 1], [128, 128, 1],
-            [128, 256, 2], [256, 256, 1], [256, 256, 1], [256, 256, 1], [256, 256, 1],
-            [256, 256, 1], [256, 256, 1], [256, 256, 1], [256, 256, 1], [256, 256, 1],
-            [256, 256, 1], [256, 256, 1], [256, 256, 1], [256, 256, 1],
-            [256, 512, 2], [512, 512, 1], [512, 512, 1],
+            [64, 64, 2],
+            [64, 64, 1],
+            [64, 64, 1],
+            [64, 128, 2],
+            [128, 128, 1],
+            [128, 128, 1],
+            [128, 128, 1],
+            [128, 256, 2],
+            [256, 256, 1],
+            [256, 256, 1],
+            [256, 256, 1],
+            [256, 256, 1],
+            [256, 256, 1],
+            [256, 256, 1],
+            [256, 256, 1],
+            [256, 256, 1],
+            [256, 256, 1],
+            [256, 256, 1],
+            [256, 256, 1],
+            [256, 256, 1],
+            [256, 256, 1],
+            [256, 512, 2],
+            [512, 512, 1],
+            [512, 512, 1],
         ]
 
-        self.body = nn.Sequential(*[ IRSE(a,b,c) for (a,b,c) in self.res50_arch ])
+        self.body = nn.Sequential(*[IRSE(a, b, c) for (a, b, c) in self.res50_arch])
 
     def forward(self, x):
         x = self.input_layer(x)
         x = self.body(x)
-        x = self.output_layer(x) 
+        x = self.output_layer(x)
         return x
 
 
@@ -107,9 +126,9 @@ if __name__ == "__main__":
     from PIL import Image
     import numpy as np
 
-    x = Image.open("../samples/009.jpg").convert('L')
+    x = Image.open("../samples/009.jpg").convert("L")
     x = x.resize((128, 128))
-    x = np.asarray(x, dtype=np.float32)    
+    x = np.asarray(x, dtype=np.float32)
     x = x[None, None, ...]
     x = torch.from_numpy(x)
     net = ResIRSE(512, 0.6)

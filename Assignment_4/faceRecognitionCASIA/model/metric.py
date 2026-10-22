@@ -7,16 +7,16 @@ import torch.nn.functional as F
 
 
 class ArcFace(nn.Module):
-    
+
     def __init__(self, embedding_size, class_num, s=30.0, m=0.50):
-        """ArcFace formula: 
+        """ArcFace formula:
             cos(m + theta) = cos(m)cos(theta) - sin(m)sin(theta)
         Note that:
             0 <= m + theta <= Pi
         So if (m + theta) >= Pi, then theta >= Pi - m. In [0, Pi]
         we have:
             cos(theta) < cos(Pi - m)
-        So we can use cos(Pi - m) as threshold to check whether 
+        So we can use cos(Pi - m) as threshold to check whether
         (m + theta) go out of [0, Pi]
 
         Args:
