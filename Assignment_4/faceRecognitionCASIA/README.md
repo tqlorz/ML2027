@@ -1,6 +1,6 @@
 # 人脸验证
 
-本项目实现 Assignment 4 要求的人脸验证接口。`FaceVerification(X1, X2)` 接收两张图片的路径，检测到的人脸属于同一个人时返回 `1`，否则返回 `0`。处理流程为：使用 MTCNN 检测人脸，选择最大人脸并根据五个关键点进行对齐，通过 FaceMobileNet 提取 512 维特征向量，再将两个向量的余弦相似度与 CASIA 验证集标定的阈值比较。当前不包含 GUI。
+本项目实现 Assignment 4 要求的人脸验证接口及中文 GUI。`FaceVerification(X1, X2)` 接收两张图片的路径，检测到的人脸属于同一个人时返回 `1`，否则返回 `0`。处理流程为：使用 MTCNN 检测人脸，选择最大人脸并根据五个关键点进行对齐，通过 FaceMobileNet 提取 512 维特征向量，再将两个向量的余弦相似度与 CASIA 验证集标定的阈值比较。
 
 ## 环境配置
 
@@ -24,6 +24,22 @@ python -m pip install -r requirements.txt
 cd Assignment_4/faceRecognitionCASIA
 source .venv/bin/activate
 ```
+
+### 图形界面
+
+```bash
+python gui.py
+```
+
+分别点击两侧的「选择图片」，预览图片后点击「开始验证」。窗口会显示同人或异人的判断、余弦相似度及阈值；未检测到人脸时单独提示，文件无法读取或模型配置错误时显示异常信息。更换图片会清除旧结果，「清空图片」可重新开始。推理在后台线程执行，窗口保持响应。
+
+GUI 使用与 `FaceVerification` 相同的模型、检测器和阈值，需在桌面环境或启用 WSLg 的 WSL 中运行。GUI 依赖 `PySide6-Essentials` 已加入 `requirements.txt`；已有环境可以单独执行 `python -m pip install PySide6-Essentials==6.8.3` 安装。支持指定权重和 CPU 线程数：
+
+```bash
+python gui.py --checkpoint 18.pth --threads 4
+```
+
+### 接口与命令行
 
 仓库提供基线模型权重 `checkpoints/18.pth`。自行训练前，配置默认使用该权重；训练生成 `best.pth` 后，配置会优先使用后者。使用 CASIA 验证集标定基线模型的验证阈值：
 

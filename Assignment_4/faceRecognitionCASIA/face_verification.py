@@ -1,6 +1,7 @@
 """Assignment API: Y = FaceVerification(X1, X2), with image paths as input."""
 
 from functools import lru_cache
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
@@ -14,6 +15,16 @@ from model import build_backbone, load_backbone
 
 class NoFaceError(ValueError):
     """A readable image contains no usable face."""
+
+
+@dataclass(frozen=True)
+class VerificationResult:
+    """Detailed result for the GUI; the assignment API still returns an int."""
+
+    prediction: int
+    similarity: float | None
+    threshold: float
+    faces_detected: bool
 
 
 def read_image(image_path):
@@ -95,7 +106,7 @@ class FaceVerifier:
     def feature(self, path):
         return self.features([path])[0]
 
-    def verify(self, first_path, second_path):
+    def compare(self, first_path, second_path):
         if self.threshold is None:
             raise ValueError("Verification requires a calibrated threshold.")
         # Validate both paths before returning 0 for an undetectable face.
@@ -104,16 +115,25 @@ class FaceVerifier:
             if not self.aligned:
                 images = [self.detect(image) for image in images]
         except NoFaceError:
-            return 0
+            return VerificationResult(0, None, self.threshold, False)
         batch = torch.stack([conf.test_transform(image) for image in images]).to(self.device)
         with torch.inference_mode():
             first, second = self.net(batch).cpu().numpy()
-        return int(cosin_metric(first, second) >= self.threshold)
+        similarity = cosin_metric(first, second)
+        return VerificationResult(int(similarity >= self.threshold), similarity, self.threshold, True)
+
+    def verify(self, first_path, second_path):
+        return self.compare(first_path, second_path).prediction
 
 
 @lru_cache(maxsize=1)
 def _load_runtime():
     return FaceVerifier()
+
+
+def compare_faces(X1, X2):
+    """Use the same cached runtime as FaceVerification, with result details."""
+    return _load_runtime().compare(X1, X2)
 
 
 def FaceVerification(X1, X2):
