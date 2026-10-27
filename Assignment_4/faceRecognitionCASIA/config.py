@@ -36,6 +36,8 @@ class Config:
 
     # dataset
     train_root = str(BASE_DIR / "datasets/CASIA-WebFace-Align-96")
+    train_list = str(BASE_DIR / "datasets/CASIA-WebFace-Align-96/train.txt")
+    val_list = str(BASE_DIR / "datasets/CASIA-WebFace-Align-96/val.txt")
     test_root = str(
         BASE_DIR / "datasets/scikit_learn_data/lfw_home/lfw_funeled_cropped"
     )
@@ -43,9 +45,16 @@ class Config:
 
     # training settings
     checkpoints = str(BASE_DIR / "checkpoints")
+    validation_threshold = str(BASE_DIR / "checkpoints/validation_threshold.json")
+    verification_threshold = str(BASE_DIR / "checkpoints/verification_threshold.json")
     restore = False  # True loads backbone weights for fine-tuning, not full resume
     restore_model = "18.pth"
-    test_model = "18.pth"
+    # Prefer the validation-selected model; use the supplied baseline before training.
+    test_model = "best.pth" if (BASE_DIR / "checkpoints/best.pth").is_file() else "18.pth"
+    seed = 42
+    detection_min_face_size = 20
+    detection_thresholds = (0.6, 0.7, 0.7)
+    detection_factor = 0.709
 
     train_batch_size = 64
     test_batch_size = 64

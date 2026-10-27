@@ -1,0 +1,20 @@
+{
+  "validation_accuracy": 0.9131914893617021,
+  "validation_list": "/home/zsh945/Workspace_WSL/ML2027/Assignment_4/faceRecognitionCASIA/datasets/CASIA-WebFace-Align-96/val.txt",
+  "pairs": 21150,
+  "validation_images": 21150,
+  "detection_failures": 0,
+  "excluded_pairs": 0,
+  "model_source": "existing checkpoint: 18.pth; calibration does not train weights",
+  "backbone": "fmobile",
+  "embedding_size": 512,
+  "input_shape": [
+    1,
+    128,
+    128
+  ],
+  "checkpoint_sha256": "027bf59d0af6357ff7dcb13bc7fea6f3223fa023f20ebfbc1deac4ede32e632c",
+  "preprocessing": "aligned",
+  "transform_version": "gray_resize_normalize_0.5_v1",
+  "threshold": 0.275169312953949
+}

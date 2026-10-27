@@ -7,6 +7,8 @@ from tqdm import tqdm
 
 from config import config as conf
 from model import build_backbone, load_backbone
+from evaluation import cosin_metric, threshold_search, read_threshold
+from face_verification import FaceVerification, FaceVerifier, NoFaceError
 
 
 def _preprocess(images: list, transform) -> torch.Tensor:
@@ -59,26 +61,7 @@ def load_pairs(pair_list, test_root):
     return pairs
 
 
-def cosin_metric(x1, x2):
-    return np.dot(x1, x2) / (np.linalg.norm(x1) * np.linalg.norm(x2))
-
-
-def threshold_search(y_score, y_true):
-    y_score = np.asarray(y_score, dtype=float)
-    y_true = np.asarray(y_true)
-    if len(y_score) == 0 or len(y_score) != len(y_true):
-        raise ValueError("Scores and labels must have the same nonzero length.")
-    best_acc = -1.0
-    best_th = 0.0
-    thresholds = np.append(np.unique(y_score), np.nextafter(y_score.max(), np.inf))
-    for threshold in thresholds:
-        accuracy = np.mean((y_score >= threshold) == y_true)
-        if accuracy > best_acc:
-            best_acc, best_th = float(accuracy), float(threshold)
-    return best_acc, best_th
-
-
-def compute_accuracy(feature_dict, pair_list, test_root):
+def compute_accuracy(feature_dict, pair_list, test_root, threshold):
     similarities = []
     labels = []
     for image1, image2, label in load_pairs(pair_list, test_root):
@@ -86,14 +69,13 @@ def compute_accuracy(feature_dict, pair_list, test_root):
         feature2 = feature_dict[image2].cpu().numpy()
         similarities.append(cosin_metric(feature1, feature2))
         labels.append(label)
-    return threshold_search(similarities, labels)
+    accuracy = float(np.mean((np.asarray(similarities) >= threshold) == labels))
+    return accuracy, threshold
 
 
-def test():
+def test(detect=False):
     weights_path = Path(conf.checkpoints) / conf.test_model
-    net = build_backbone(conf).to(conf.device)
-    load_backbone(net, weights_path, conf.device)
-    net.eval()
+    threshold = read_threshold(conf, weights_path, "detected" if detect else "aligned")
 
     pairs = load_pairs(conf.test_list, conf.test_root)
     images = sorted({image for pair in pairs for image in pair[:2]})
@@ -107,16 +89,53 @@ def test():
         raise ValueError("test_batch_size must be positive.")
 
     print(f"Device: {conf.device}, pairs: {len(pairs)}, unique images: {len(images)}")
+    if detect:
+        verifier = FaceVerifier()
+        features = {}
+        failures = 0
+        for image in tqdm(images, desc="Detecting test faces"):
+            try:
+                features[image] = verifier.feature(image)
+            except NoFaceError:
+                features[image] = None
+                failures += 1
+        correct = 0
+        for first, second, label in pairs:
+            prediction = 0
+            if features[first] is not None and features[second] is not None:
+                prediction = int(cosin_metric(features[first], features[second]) >= threshold)
+            correct += prediction == label
+        accuracy = correct / len(pairs)
+        print(f"End-to-end accuracy: {accuracy:.4%}; no-face images: {failures}")
+        return accuracy, threshold
+
+    net = build_backbone(conf).to(conf.device)
+    load_backbone(net, weights_path, conf.device)
+    net.eval()
     feature_dict = {}
     for start in tqdm(range(0, len(images), conf.test_batch_size), desc="Extracting features"):
         group = images[start : start + conf.test_batch_size]
         feature_dict.update(featurize(group, conf.test_transform, net, conf.device))
 
-    accuracy, threshold = compute_accuracy(feature_dict, conf.test_list, conf.test_root)
+    accuracy, threshold = compute_accuracy(feature_dict, conf.test_list, conf.test_root, threshold)
     print(f"Model: {weights_path}")
-    print(f"Best accuracy on these pairs: {accuracy:.4%}, threshold: {threshold:.6f}")
+    print(f"Accuracy at fixed CASIA-validation threshold: {accuracy:.4%}, threshold: {threshold:.6f}")
+    print("This is fixed-threshold evaluation, not LFW ten-fold cross-validation.")
     return accuracy, threshold
 
 
 if __name__ == "__main__":
-    test()
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Test LFW without fitting the threshold on LFW.")
+    parser.add_argument("--checkpoint", default=conf.test_model)
+    parser.add_argument("--detect", action="store_true")
+    parser.add_argument("--pairs", default=conf.test_list)
+    parser.add_argument("--test-root", default=conf.test_root)
+    parser.add_argument("--threads", type=int, default=4)
+    args = parser.parse_args()
+    if args.threads < 1:
+        parser.error("--threads must be positive")
+    torch.set_num_threads(args.threads)
+    conf.test_model, conf.test_list, conf.test_root = args.checkpoint, args.pairs, args.test_root
+    test(detect=args.detect)
