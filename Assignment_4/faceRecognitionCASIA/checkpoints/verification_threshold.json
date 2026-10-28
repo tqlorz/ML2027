@@ -1,0 +1,32 @@
+{
+  "validation_accuracy": 0.836988911142592,
+  "validation_list": "/output/ML2027/Assignment_4/faceRecognitionCASIA/datasets/CASIA-WebFace-Align-96/val.txt",
+  "pairs": 20471,
+  "validation_images": 21150,
+  "detection_failures": 352,
+  "excluded_pairs": 679,
+  "model_source": "existing checkpoint: best.pth; calibration does not train weights",
+  "backbone": "fmobile",
+  "embedding_size": 512,
+  "input_shape": [
+    1,
+    128,
+    128
+  ],
+  "checkpoint_sha256": "6cc24fce0d92db46b8be560a8ae6f02445ace658ca6f02a091f14c60f3bcdd3d",
+  "preprocessing": "detected",
+  "transform_version": "gray_resize_normalize_0.5_v1",
+  "detector": {
+    "name": "facenet-pytorch-2.6.0-mtcnn",
+    "min_face_size": 20,
+    "thresholds": [
+      0.6,
+      0.7,
+      0.7
+    ],
+    "factor": 0.709,
+    "alignment": "five_point_similarity_v1",
+    "face_selection": "largest"
+  },
+  "threshold": 0.3042203187942505
+}
